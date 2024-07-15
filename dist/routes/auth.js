@@ -41,7 +41,7 @@ router.get("/auth/status2", (req, res) => {
     console.log(req.user);
     console.log(req.session);
     console.log(req.sessionID);
-    return req.user ? res.send(req.user) : res.sendStatus(401);
+    return req.user ? res.status(200).send(req.user) : res.sendStatus(401);
 });
 router.post("/auth/logout", (req, res) => {
     if (!req.user)
