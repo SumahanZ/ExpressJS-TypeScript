@@ -21,6 +21,10 @@ import {
 import { mockUsers } from "../utils/constants";
 import { resolveIndexByUserId } from "../utils/middlewares";
 import { hashPassword } from "../utils/helpers";
+import {
+  createUserHandler,
+  getUserByIdHandler,
+} from "../handlers/user_handler";
 
 //Its like a mini application and register request in the Router to group all your routes
 //But then you need to register your router in the app...
@@ -40,6 +44,8 @@ router.get(
     console.log(req.session);
     console.log(req.session.id);
     //get the sessionData from the SessionStore of a specific client based on the passed session.id
+    //IN-MEMORY SESSION STORE
+    //CONS: When server goes down, therefore the SessionStore and underlying sessions are wiped
     req.sessionStore.get(req.session.id, (err, sessionData) => {
       if (err) {
         throw err;
@@ -72,30 +78,7 @@ router.post(
   //We can also use this validator to validate headers or cookies
   //Seperate this validation requirement in a schema, to make it more clean
   checkSchema(createUserValidationSchema),
-  async (req: Request, res: Response) => {
-    const result = validationResult(req);
-    //if the result returns validation error
-    if (!result.isEmpty()) {
-      //send the error as a response in the form of JSON
-      return res.status(400).send({ errors: result.array() });
-    }
-    //get data from request body that has been validated
-    //if it enters here that means the body is validated
-    const data: Omit<User, "id"> = matchedData(req);
-    //hash password here
-    data.password = await hashPassword(data.password);
-
-    try {
-      const newUser = await UserModel.create({
-        ...data,
-      });
-
-      return res.status(201).send(newUser);
-    } catch (err) {
-      console.log(err);
-      return res.sendStatus(400);
-    }
-  }
+  createUserHandler
 );
 
 //PUT Request
@@ -107,7 +90,7 @@ router.put(
   //pass middleware here
   //this will be run after running all the global middleware like the express.json() middleware
   resolveIndexByUserId,
-  (req: Request<UserRequestParams, {}, UserBodyParam, {}>, res: Response) => {
+  (req: Request<UserRequestParams, {}, UserBodyParam>, res: Response) => {
     //we still have body here
     const { body, findUserIndex } = req;
     //remember when using PUT request we need to include the whole object and the fields, even if we are not including those fields, it will be overwritten/null/gone
@@ -125,7 +108,7 @@ router.put(
 router.patch(
   "/users/:id",
   resolveIndexByUserId,
-  (req: Request<UserRequestParams, {}, UserBodyParam, {}>, res: Response) => {
+  (req: Request<UserRequestParams, {}, UserBodyParam>, res: Response) => {
     const { body, findUserIndex } = req;
     //Get the current value and unpack it and then the body paylod will also be unpacked, so the same fields, aka the one we pass from the body will override
     mockUsers[findUserIndex] = { ...mockUsers[findUserIndex], ...body };
@@ -139,7 +122,7 @@ router.patch(
 router.delete(
   "/users/:id",
   resolveIndexByUserId,
-  (req: Request<UserRequestParams, {}, {}, {}>, res: Response) => {
+  (req: Request<UserRequestParams>, res: Response) => {
     const { findUserIndex } = req;
 
     mockUsers.splice(findUserIndex, 1);
@@ -150,17 +133,6 @@ router.delete(
 
 //Route parameters
 //3 edge cases are handled for when param is NaN, user with specific id not found, and when succeed
-router.get(
-  "/users/:id",
-  resolveIndexByUserId,
-  (req: Request<UserRequestParams, {}, {}, {}>, res: Response) => {
-    const { findUserIndex } = req;
-    const findUser = mockUsers[findUserIndex];
-    if (!findUser) {
-      return res.sendStatus(404);
-    }
-    return res.send(findUser);
-  }
-);
+router.get("/users/:id", resolveIndexByUserId, getUserByIdHandler);
 
 export default router;

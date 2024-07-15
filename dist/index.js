@@ -12,7 +12,9 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const express_session_1 = __importDefault(require("express-session"));
 const passport_1 = __importDefault(require("passport"));
 const mongoose_1 = __importDefault(require("mongoose"));
-require("./strategies/local_strategy_config");
+// import "./strategies/local_strategy_config";
+require("./strategies/discord_strategy_config");
+const connect_mongo_1 = __importDefault(require("connect-mongo"));
 //We need to validate our request.bodies, what if we already did it from the client-side, well for starters the server does not know where the payload is being sent from
 //So to avoid malicious request and for validating on the server side we can use a package called express-validator
 //Create an express application using this command
@@ -29,7 +31,9 @@ app.use((0, cookie_parser_1.default)("helloWorld"));
 app.use((0, express_session_1.default)({
     //use something hard to decipher
     secret: "kevin the sander dev",
-    //when client visit, if set true, it will save a SessionStore object in memory
+    //when client visit, if set true, it will save a SessionStore object even if you didnt't modify the sessionData (everytime you visit endpoint, its going to add another entry in the session collection)
+    //Better to have it false or only set to the SessionStore when the session data changes
+    //Could maybe be usefull when for example customer on guest mode and when they login wanna retrieve the cart and put in their account
     saveUninitialized: false,
     resave: false,
     //configure how long the cookie will live
@@ -37,9 +41,18 @@ app.use((0, express_session_1.default)({
         //logged in for exactly 1 hour
         maxAge: 60000 * 60,
     },
+    //setup session store, so the sessionData will not be stored in memory causing the problems of session being wiped automatically when server restart/down/etc
+    //connect the session store with the database connection, depends on the database you are using
+    //therefore the sessionData will be stored in MongoDB (Collection of sessions is created in MongoDB)
+    store: connect_mongo_1.default.create({
+        //refer to the current connected client of MongoDB
+        //After connection, and setting up of session. req.session will be attached with the sessionData fetched from MongoDB
+        client: mongoose_1.default.connection.getClient(),
+    }),
 }));
 app.use(passport_1.default.initialize());
 //this will take care of attaching a dynamic user property to the req object
+//configure passport to work with session
 app.use(passport_1.default.session());
 app.use(global_middlewares_initialzer_1.default);
 app.use(route_initializer_1.default);

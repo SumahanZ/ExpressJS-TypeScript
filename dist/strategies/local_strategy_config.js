@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const passport_1 = __importDefault(require("passport"));
 const passport_local_1 = require("passport-local");
 const user_model_1 = require("../models/user_model");
+const helpers_1 = require("../utils/helpers");
 //This function is only called when we are logging in/authenticating
 //As soon as we modify the session object, it will send a cookie to the client and save the sessionID in that cookie
 //when using password we need to serialize the req.user object attached from the local configuration and put it in sessionStore (req.session.passport.user)
@@ -58,7 +59,7 @@ exports.default = passport_1.default.use(new passport_local_1.Strategy((username
         });
         if (!findUser)
             throw new Error("User not found");
-        if (findUser.password !== password)
+        if (!(0, helpers_1.comparePassword)(password, findUser.password))
             throw new Error("Bad Credentials");
         //this will enter the passport.serialize function
         done(null, findUser);

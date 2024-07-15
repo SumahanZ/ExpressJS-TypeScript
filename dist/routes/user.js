@@ -16,6 +16,7 @@ const express_validator_1 = require("express-validator");
 const validation_schemas_1 = require("../utils/validation_schemas");
 const constants_1 = require("../utils/constants");
 const middlewares_1 = require("../utils/middlewares");
+const helpers_1 = require("../utils/helpers");
 //Its like a mini application and register request in the Router to group all your routes
 //But then you need to register your router in the app...
 const router = (0, express_1.Router)();
@@ -31,6 +32,8 @@ router.get("/users",
     console.log(req.session);
     console.log(req.session.id);
     //get the sessionData from the SessionStore of a specific client based on the passed session.id
+    //IN-MEMORY SESSION STORE
+    //CONS: When server goes down, therefore the SessionStore and underlying sessions are wiped
     req.sessionStore.get(req.session.id, (err, sessionData) => {
         if (err) {
             throw err;
@@ -66,6 +69,8 @@ router.post("/users",
     //get data from request body that has been validated
     //if it enters here that means the body is validated
     const data = (0, express_validator_1.matchedData)(req);
+    //hash password here
+    data.password = yield (0, helpers_1.hashPassword)(data.password);
     try {
         const newUser = yield user_model_1.UserModel.create(Object.assign({}, data));
         return res.status(201).send(newUser);

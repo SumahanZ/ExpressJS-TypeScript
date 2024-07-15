@@ -2,6 +2,7 @@ import passport from "passport";
 import { Strategy } from "passport-local";
 import { mockUsers } from "../utils/constants";
 import { UserModel } from "../models/user_model";
+import { comparePassword } from "../utils/helpers";
 
 //This function is only called when we are logging in/authenticating
 //As soon as we modify the session object, it will send a cookie to the client and save the sessionID in that cookie
@@ -47,7 +48,8 @@ export default passport.use(
       });
 
       if (!findUser) throw new Error("User not found");
-      if (findUser.password !== password) throw new Error("Bad Credentials");
+      if (!comparePassword(password, findUser.password))
+        throw new Error("Bad Credentials");
       //this will enter the passport.serialize function
       done(null, findUser);
     } catch (err) {

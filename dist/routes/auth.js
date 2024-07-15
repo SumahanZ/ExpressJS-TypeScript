@@ -39,6 +39,8 @@ router.get("/auth/status", (req, res) => {
 router.get("/auth/status2", (req, res) => {
     console.log("Inside /auth/status2 endpoint");
     console.log(req.user);
+    console.log(req.session);
+    console.log(req.sessionID);
     return req.user ? res.send(req.user) : res.sendStatus(401);
 });
 router.post("/auth/logout", (req, res) => {
@@ -50,5 +52,15 @@ router.post("/auth/logout", (req, res) => {
             return res.sendStatus(400);
         res.sendStatus(200);
     });
+});
+//The flow of the discord OAuth2
+//1. We first access the authentication url the first time, calling passport.authenticate
+//2. We get redirected to the discord (third party) platform page
+//3. When we click authorize, it will redirect us to the redirect page with a query parameter ?code="..."
+//4. Then when we call passport.authenticate the second time it will  grab the accessToken and refreshToken in exchange for the ?code="..."
+//5. Calls the verify function of the discord strategy config passed with the accessToken, refreshToken, and user object returned from the authentication
+router.get("/auth/discord", passport_1.default.authenticate("discord"), (req, res) => { });
+router.get("/auth/discord/redirect", passport_1.default.authenticate("discord"), (req, res) => {
+    res.sendStatus(200);
 });
 exports.default = router;
